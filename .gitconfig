@@ -1,0 +1,6 @@
+[mergetool "sops-mergetool"]
+        cmd = ./sops-mergetool.sh "$BASE" "$LOCAL" "$REMOTE" "$MERGED"
+[merge]
+	tool = nvimdiff
+[merge "nvimdiff"]
+	layout = LOCAL,BASE,REMOTE / MERGED + BASE,LOCAL + BASE,REMOTE + (LOCAL/BASE/REMOTE),MERGED
