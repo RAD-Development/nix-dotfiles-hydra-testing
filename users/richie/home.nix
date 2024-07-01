@@ -1,25 +1,16 @@
-{ pkgs, ... }:
-# home manager
+{ lib, machineConfig, ... }:
 {
   imports = [
+    ./home/programs.nix
     ./home/sshconfig.nix
-    ./home/git.nix
-  ];
+    ./home/cli
+  ] ++ lib.optionals (!machineConfig.server) [ ./home/gui ];
 
-  programs.zsh.enable = true;
+  nixpkgs.config.allowUnfree = true;
+
   home = {
     username = "richie";
     homeDirectory = "/home/richie";
-    packages = with pkgs; [
-      # Rust packages
-      topgrade
-      trunk
-      wasm-pack
-      cargo-watch
-      cargo-generate
-      cargo-audit
-      cargo-update
-    ];
   };
 
   home.stateVersion = "23.11";

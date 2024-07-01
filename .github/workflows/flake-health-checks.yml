@@ -2,21 +2,19 @@ name: "Check Nix flake"
 on:
   push:
     branches: ["main"]
-    paths:
-      - '**.nix'
   pull_request:
     branches: ["main"]
-    paths:
-      - '**.nix'
+  merge_group:
+
 jobs:
   health-check:
     name: "Perform Nix flake checks"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest]
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v4
-      - run: nix flake check
+      - run: nix flake check --accept-flake-config

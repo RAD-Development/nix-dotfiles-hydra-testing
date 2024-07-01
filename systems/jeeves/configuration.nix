@@ -1,5 +1,15 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
+let
+  vars = import ./vars.nix;
+in
 {
+  imports = [
+    ../../users/richie/global/ssh.nix
+    ../../users/richie/global/syncthing_base.nix
+    ../../users/richie/global/zerotier.nix
+    ./docker
+    ./programs.nix
+  ];
 
   networking = {
     hostId = "1beb3027";
@@ -8,35 +18,12 @@
 
   boot = {
     zfs.extraPools = [
-      "Media"
-      "Storage"
-      "Torenting"
+      "media"
+      "storage"
+      "torrenting"
     ];
     filesystem = "zfs";
     useSystemdBoot = true;
-  };
-
-  virtualisation = {
-    docker = {
-      enable = true;
-      recommendedDefaults = true;
-      logDriver = "local";
-      storageDriver = "overlay2";
-      daemon."settings" = {
-        experimental = true;
-        data-root = "/var/lib/docker";
-        exec-opts = [ "native.cgroupdriver=systemd" ];
-        log-opts = {
-          max-size = "10m";
-          max-file = "5";
-        };
-      };
-    };
-
-    podman = {
-      enable = true;
-      recommendedDefaults = true;
-    };
   };
 
   environment = {
@@ -68,12 +55,65 @@
 
     plex = {
       enable = true;
-      dataDir = "/ZFS/Media/Plex/";
+      dataDir = vars.media_plex;
     };
 
     smartd.enable = true;
 
     sysstat.enable = true;
+
+    syncthing.guiAddress = "192.168.90.40:8384";
+    syncthing.settings.folders = {
+      "notes" = {
+        id = "l62ul-lpweo"; # cspell:disable-line
+        path = vars.media_notes;
+        devices = [
+          "bob"
+          "phone"
+          "rhapsody-in-green"
+        ];
+        fsWatcherEnabled = true;
+      };
+      "books" = {
+        id = "6uppx-vadmy"; # cspell:disable-line
+        path = "${vars.storage_syncthing}/books";
+        devices = [
+          "bob"
+          "phone"
+          "rhapsody-in-green"
+        ];
+        fsWatcherEnabled = true;
+      };
+      "important" = {
+        id = "4ckma-gtshs"; # cspell:disable-line
+        path = "${vars.storage_syncthing}/important";
+        devices = [
+          "bob"
+          "phone"
+          "rhapsody-in-green"
+        ];
+        fsWatcherEnabled = true;
+      };
+      "music" = {
+        id = "vprc5-3azqc"; # cspell:disable-line
+        path = "${vars.storage_syncthing}/music";
+        devices = [
+          "bob"
+          "phone"
+          "rhapsody-in-green"
+        ];
+        fsWatcherEnabled = true;
+      };
+      "projects" = {
+        id = "vyma6-lqqrz"; # cspell:disable-line
+        path = "${vars.storage_syncthing}/projects";
+        devices = [
+          "bob"
+          "rhapsody-in-green"
+        ];
+        fsWatcherEnabled = true;
+      };
+    };
 
     usbguard = {
       enable = false;
@@ -86,13 +126,41 @@
       trim.enable = true;
       autoScrub.enable = true;
     };
+  };
+  systemd = {
+    services."snapshot_manager" = {
+      description = "ZFS Snapshot Manager";
+      requires = [ "zfs-import.target" ];
+      after = [ "zfs-import.target" ];
+      serviceConfig = {
+        Environment = "ZFS_BIN=${pkgs.zfs}/bin/zfs";
+        Type = "oneshot";
+        ExecStart = "${pkgs.python3}/bin/python3 ${vars.media_scripts}/ZFS/snapshot_manager.py --config-file='/root/nix-dotfiles/systems/jeeves/snapshot_config.toml'";
+      };
+    };
+    timers."snapshot_manager" = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "15m";
+        OnUnitActiveSec = "15m";
+        Unit = "snapshot_manager.service";
+      };
+    };
+  };
 
-    zerotierone = {
-      enable = true;
-      joinNetworks = [
-        "e4da7455b2ae64ca"
-        "52b337794f23c1d4"
-      ];
+  sops = {
+    defaultSopsFile = ./secrets.yaml;
+    secrets = {
+      "zfs/backup_key".path = "/root/zfs/backup_key";
+      "zfs/docker_key".path = "/root/zfs/docker_key";
+      "zfs/main_key".path = "/root/zfs/main_key";
+      "zfs/notes_key".path = "/root/zfs/notes_key";
+      "zfs/plex_key".path = "/root/zfs/plex_key";
+      "zfs/postgres_key".path = "/root/zfs/postgres_key";
+      "zfs/qbit_key".path = "/root/zfs/qbit_key";
+      "zfs/scripts_key".path = "/root/zfs/scripts_key";
+      "zfs/syncthing_key".path = "/root/zfs/syncthing_key";
+      "zfs/vault_key".path = "/root/zfs/vault_key";
     };
   };
 

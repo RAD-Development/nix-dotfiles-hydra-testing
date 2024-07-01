@@ -1,7 +1,23 @@
-{ pkgs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  machineConfig,
+  ...
+}:
 
 {
-  imports = [ ./home/zsh.nix ];
+  imports =
+    [
+      ./home/zsh.nix
+      ./home/git.nix
+    ]
+    ++ lib.optionals (!machineConfig.server) [
+      ./home/gammastep.nix
+      ./home/doom
+      ./home/hypr
+      ./non-server.nix
+    ];
 
   home = {
     # # Adds the 'hello' command to your environment. It prints a friendly
@@ -24,47 +40,83 @@
     username = "alice";
     homeDirectory = "/home/alice";
     packages = with pkgs; [
+      gnumake
+      python3
+
+      # useful tools
       ncdu
+      neofetch
+      smartmontools
+      wget
+      glances
 
       # Rust packages
-      trunk
-      wasm-pack
-      cargo-watch
-      #pkgs.cargo-tarpaulin
-      cargo-generate
-      cargo-audit
+      bat
       cargo-update
       diesel-cli
-      gitoxide
       tealdeer
       helix
 
       # nix specific packages
-      nil
-      nixfmt
-
-      # markdown
-      nodePackages.markdownlint-cli
+      nix-output-monitor
+      nix-prefetch
+      nix-tree
+      nh
 
       # doom emacs dependencies
       fd
       ripgrep
-      clang
+
+      # audit
+      lynis
+
+      # dependencies for nix-dotfiles/hydra-check-action
+      nodejs_20
+      nodePackages.prettier
+      treefmt
     ];
   };
 
   programs = {
+
     starship.enable = true;
+
     fzf = {
       enable = true;
       enableZshIntegration = true;
     };
 
+    direnv = {
+      enable = true;
+      enableZshIntegration = true;
+      nix-direnv.enable = true;
+    };
+
+    eza = {
+      enable = true;
+      icons = true;
+      git = true;
+    };
+
+    neovim = {
+      enable = true;
+      defaultEditor = true;
+      vimAlias = true;
+      vimdiffAlias = true;
+      extraConfig = ''
+        set bg=dark
+              set tabstop=2
+        	set shiftwidth=2
+        	set expandtab
+        	set smartindent
+      '';
+    };
     nix-index = {
       enable = true;
       enableZshIntegration = true;
     };
 
+    tmux.enable = true;
     topgrade = {
       enable = true;
       settings = {
@@ -80,6 +132,28 @@
   };
 
   services.ssh-agent.enable = true;
+
+  # TODO: add environment bs
+  home.sessionVariables = {
+    EDITOR = "nvim";
+  };
+
+  xdg = {
+    enable = true;
+    userDirs = {
+      enable = true;
+      createDirectories = true;
+      extraConfig = {
+        XDG_SCREENSHOTS_DIR = "${config.xdg.userDirs.pictures}/Screenshots";
+      };
+    };
+  };
+
+  sops = {
+    age.sshKeyPaths = [ "/home/alice/.ssh/id_ed25519_sops" ];
+    defaultSopsFile = ./secrets.yaml;
+    secrets."alice/wakatime-api-key".path = "/home/alice/.config/doom/wakatime";
+  };
 
   home.stateVersion = "23.11";
 }

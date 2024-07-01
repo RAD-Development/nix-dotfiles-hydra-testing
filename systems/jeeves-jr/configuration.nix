@@ -1,5 +1,10 @@
 { pkgs, ... }:
 {
+  imports = [
+    ../../users/richie/global/ssh.nix
+    ../../users/richie/global/zerotier.nix
+    ./docker
+  ];
 
   networking = {
     hostId = "1beb3026";
@@ -10,29 +15,6 @@
     zfs.extraPools = [ "Main" ];
     filesystem = "zfs";
     useSystemdBoot = true;
-  };
-
-  virtualisation = {
-    docker = {
-      enable = true;
-      recommendedDefaults = true;
-      logDriver = "local";
-      storageDriver = "overlay2";
-      daemon."settings" = {
-        experimental = true;
-        data-root = "/var/lib/docker";
-        exec-opts = [ "native.cgroupdriver=systemd" ];
-        log-opts = {
-          max-size = "10m";
-          max-file = "5";
-        };
-      };
-    };
-
-    podman = {
-      enable = true;
-      recommendedDefaults = true;
-    };
   };
 
   environment = {
@@ -76,11 +58,6 @@
     zfs = {
       trim.enable = true;
       autoScrub.enable = true;
-    };
-
-    zerotierone = {
-      enable = true;
-      joinNetworks = [ "e4da7455b2ae64ca" ];
     };
   };
 
